@@ -415,6 +415,22 @@ button {
 
 @media (max-width: 768px) {
     .ride-stats {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        margin: 6px 0;
+    }
+
+    .ride-stats > div {
+        padding: 6px 4px;
+        text-align: center;
+    }
+
+    .ride-stat-label {
+        font-size: 0.72rem;
+        margin-bottom: 2px;
+    }
+
+    .ride-stats strong {
+        font-size: 0.82rem;
     }
 }

@@ -659,6 +659,14 @@ function showLiveLocation(position) {
     }
 }
 
+function handleLiveLocationUpdate(position) {
+    showLiveLocation(position);
+
+    if (typeof addRecordedRidePoint === "function") {
+        addRecordedRidePoint(position);
+    }
+}
+
 function handleLiveLocationError(error) {
     let message = "Unable to get location";
 
@@ -695,7 +703,7 @@ function startLiveLocation() {
     recordMapCentred = false;
 
     locationWatchId = navigator.geolocation.watchPosition(
-        showLiveLocation,
+        handleLiveLocationUpdate,
         handleLiveLocationError,
         {
             enableHighAccuracy: true,
@@ -733,6 +741,7 @@ let rideTimerId = null;
 let lastRidePosition = null;
 
 const startRideButton = document.getElementById("startRideButton");
+const stopRideButton = document.getElementById("stopRideButton");
 const rideDistance = document.getElementById("rideDistance");
 const rideTime = document.getElementById("rideTime");
 const rideSpeed = document.getElementById("rideSpeed");
@@ -802,6 +811,7 @@ function startRideRecording() {
     rideRecording = true;
     rideStartTime = Date.now();
     startRideButton.disabled = true;
+    stopRideButton.disabled = false;
     startRideButton.textContent = "Ride Recording";
     gpsStatus.textContent = "GPS: Ride recording started";
 
@@ -814,6 +824,30 @@ function startRideRecording() {
     }
 
     rideTimerId = window.setInterval(updateRideTimer, 1000);
+}
+
+
+function stopRideRecording() {
+    if (!rideRecording) {
+        return;
+    }
+
+    rideRecording = false;
+
+    if (rideTimerId !== null) {
+        window.clearInterval(rideTimerId);
+        rideTimerId = null;
+    }
+
+    updateRideTimer();
+    rideSpeed.textContent = "0.0 mph";
+    startRideButton.disabled = false;
+    startRideButton.textContent = "Start New Ride";
+    stopRideButton.disabled = true;
+    gpsStatus.textContent = "GPS: Ride stopped";
+
+    // Keep the recorded track and totals visible for review.
+    lastRidePosition = null;
 }
 
 function addRecordedRidePoint(position) {
@@ -897,15 +931,12 @@ function addRecordedRidePoint(position) {
     };
 }
 
-if (typeof updateLiveLocation === "function") {
-    const originalUpdateLiveLocationForRide = updateLiveLocation;
-
-    updateLiveLocation = function(position) {
-        originalUpdateLiveLocationForRide(position);
-        addRecordedRidePoint(position);
-    };
-}
 
 if (startRideButton) {
     startRideButton.addEventListener("click", startRideRecording);
+}
+
+
+if (stopRideButton) {
+    stopRideButton.addEventListener("click", stopRideRecording);
 }
