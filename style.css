@@ -1,0 +1,250 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: white;
+}
+
+header {
+    flex: 0 0 auto;
+    background: #1b5e20;
+    color: white;
+    text-align: center;
+    padding: 8px 12px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.7rem;
+    line-height: 1.2;
+}
+
+#app {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+}
+
+#map {
+    flex: 1 1 auto;
+    min-height: 220px;
+    cursor: crosshair;
+}
+
+#info {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+        "buttons details status"
+        "buttons elevation status";
+    align-items: center;
+    gap: 8px 14px;
+    flex: 0 0 auto;
+    padding: 10px;
+    font-size: 16px;
+    background: white;
+    border-top: 1px solid #ccc;
+}
+
+.button-group {
+    grid-area: buttons;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    min-height: 40px;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.ride-details {
+    grid-area: details;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    min-width: 0;
+}
+
+.speed-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+#speed {
+    width: 70px;
+    min-height: 38px;
+    padding: 5px 6px;
+}
+
+#elevation {
+    grid-area: elevation;
+    min-width: 0;
+}
+
+#status {
+    grid-area: status;
+    justify-self: end;
+    font-weight: bold;
+    color: #006400;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    #info {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "buttons buttons"
+            "details status"
+            "elevation elevation";
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        overflow: hidden;
+    }
+
+    header {
+        padding: 6px 10px;
+    }
+
+    header h1 {
+        font-size: 1.35rem;
+    }
+
+    #map {
+        min-height: 180px;
+    }
+
+    #info {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "buttons"
+            "details"
+            "elevation"
+            "status";
+        align-items: stretch;
+        gap: 8px;
+        max-height: 46vh;
+        overflow-y: auto;
+        padding: 8px;
+        font-size: 15px;
+    }
+
+    .button-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    button {
+        width: 100%;
+        min-height: 44px;
+        padding: 8px 6px;
+    }
+
+    .ride-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .speed-control {
+        grid-column: 1 / -1;
+    }
+
+    #speed {
+        min-height: 44px;
+    }
+
+    #elevation,
+    #status {
+        line-height: 1.4;
+    }
+
+    #status {
+        justify-self: start;
+        white-space: normal;
+    }
+}
+
+@media (max-width: 380px) {
+    .button-group,
+    .ride-details {
+        grid-template-columns: 1fr;
+    }
+
+    .speed-control {
+        grid-column: auto;
+    }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    header {
+        display: none;
+    }
+
+    #app {
+        flex-direction: row;
+    }
+
+    #map {
+        min-width: 58%;
+        min-height: 100%;
+    }
+
+    #info {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "buttons"
+            "details"
+            "elevation"
+            "status";
+        width: min(42%, 390px);
+        max-height: none;
+        overflow-y: auto;
+        border-top: 0;
+        border-left: 1px solid #ccc;
+    }
+
+    .button-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ride-details {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    #status {
+        justify-self: start;
+        white-space: normal;
+    }
+}

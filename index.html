@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cycle Planner</title>
+
+    <meta name="theme-color" content="#1f5f3b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Cycle Planner">
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Leaflet map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+</head>
+
+<body>
+
+<header>
+    <h1>Cycle Planner</h1>
+</header>
+
+<main id="app">
+    <div id="map"></div>
+
+    <div id="info">
+        <div class="button-group" aria-label="Route controls">
+            <button type="button" onclick="undoLastPoint()">Undo Last Point</button>
+            <button type="button" onclick="clearRoute()">Clear Route</button>
+            <button type="button" onclick="exportGPX()">Export GPX</button>
+            <button type="button" onclick="document.getElementById('gpxFile').click()">Import GPX</button>
+        </div>
+
+        <input
+            type="file"
+            id="gpxFile"
+            accept=".gpx"
+            style="display:none">
+
+        <div class="ride-details">
+            <label class="speed-control" for="speed">
+                <span>Speed:</span>
+                <input id="speed" type="number" value="15" min="1" inputmode="decimal">
+                <span>mph</span>
+            </label>
+
+            <span id="distance">Distance: 0 miles</span>
+            <span id="time">Time: 0 hours</span>
+        </div>
+
+        <div id="elevation">
+            Elevation: 0 m |
+            Climb: 0 m |
+            Descent: 0 m
+        </div>
+
+        <span id="status" role="status" aria-live="polite">Status: Ready</span>
+    </div>
+</main>
+
+<!-- Leaflet map JavaScript -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- Your app JavaScript -->
+<script src="script.js"></script>
+
+</body>
+</html>

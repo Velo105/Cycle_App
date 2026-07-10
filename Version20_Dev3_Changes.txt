@@ -1,0 +1,15 @@
+Cycling Planner Version 20 Development 3
+
+Changes made:
+- Added manifest.json for home-screen installation.
+- Added 192 x 192 and 512 x 512 app icons.
+- Added manifest, favicon and Apple touch-icon links to index.html.
+- Added standalone display, theme colour and mobile app metadata.
+- Preserved all Version 20 Dev 2 layout and route-planning behaviour.
+
+Not included yet:
+- No service worker or offline caching has been added.
+- The application must be hosted over HTTPS (or localhost) for full browser installation support.
+
+No JavaScript route-planning logic was changed.
+No cycling features were added.
