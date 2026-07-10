@@ -434,3 +434,33 @@ button {
         font-size: 0.82rem;
     }
 }
+
+
+/* Version 21 Dev 4 - saved rides */
+.saved-rides-panel {
+    display: grid;
+    grid-template-columns: auto minmax(180px, 1fr) auto auto;
+    gap: 8px;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.saved-rides-panel label {
+    font-weight: 600;
+}
+
+.saved-rides-panel select,
+.saved-rides-panel button {
+    min-height: 40px;
+}
+
+@media (max-width: 768px) {
+    .saved-rides-panel {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .saved-rides-panel label,
+    .saved-rides-panel select {
+        grid-column: 1 / -1;
+    }
+}

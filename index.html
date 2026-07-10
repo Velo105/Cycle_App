@@ -76,6 +76,7 @@
             <button type="button" id="showLocationButton">Show My Location</button>
             <button type="button" id="startRideButton">Start Ride</button>
             <button type="button" id="stopRideButton" disabled>Stop Ride</button>
+            <button type="button" id="saveRideButton" disabled>Save Ride</button>
             <button type="button" id="stopLocationButton" disabled>Stop Location</button>
             <span id="gpsStatus" role="status" aria-live="polite">GPS: Not started</span>
             <span id="gpsAccuracy">Accuracy: --</span>
@@ -85,6 +86,16 @@
             <div><span class="ride-stat-label">Distance</span><strong id="rideDistance">0.00 miles</strong></div>
             <div><span class="ride-stat-label">Ride time</span><strong id="rideTime">00:00:00</strong></div>
             <div><span class="ride-stat-label">Current speed</span><strong id="rideSpeed">0.0 mph</strong></div>
+        </div>
+
+
+        <div class="saved-rides-panel">
+            <label for="savedRideSelect">Saved rides</label>
+            <select id="savedRideSelect">
+                <option value="">Select a saved ride</option>
+            </select>
+            <button type="button" id="loadRideButton">Load Ride</button>
+            <button type="button" id="exportSavedRideButton">Export GPX</button>
         </div>
 
         <div id="recordMap" aria-label="Live GPS map"></div>

@@ -672,16 +672,30 @@ function handleLiveLocationError(error) {
 
     if (error.code === 1) {
         message = "Location permission denied";
-    } else if (error.code === 2) {
-        message = "Location unavailable";
+        gpsStatus.textContent = "GPS: " + message;
+        showLocationButton.disabled = false;
+        stopLocationButton.disabled = true;
+        locationWatchId = null;
+        return;
+    }
+
+    if (error.code === 2) {
+        message = "GPS signal temporarily unavailable";
     } else if (error.code === 3) {
-        message = "Location request timed out";
+        message = "Waiting for GPS signal";
     }
 
     gpsStatus.textContent = "GPS: " + message;
+
+    // Temporary GPS loss does not end an active ride.
+    if (rideRecording) {
+        showLocationButton.disabled = true;
+        stopLocationButton.disabled = false;
+        return;
+    }
+
     showLocationButton.disabled = false;
     stopLocationButton.disabled = true;
-    locationWatchId = null;
 }
 
 function startLiveLocation() {
@@ -742,6 +756,10 @@ let lastRidePosition = null;
 
 const startRideButton = document.getElementById("startRideButton");
 const stopRideButton = document.getElementById("stopRideButton");
+const saveRideButton = document.getElementById("saveRideButton");
+const savedRideSelect = document.getElementById("savedRideSelect");
+const loadRideButton = document.getElementById("loadRideButton");
+const exportSavedRideButton = document.getElementById("exportSavedRideButton");
 const rideDistance = document.getElementById("rideDistance");
 const rideTime = document.getElementById("rideTime");
 const rideSpeed = document.getElementById("rideSpeed");
@@ -800,6 +818,10 @@ function resetRideRecording() {
 }
 
 function startRideRecording() {
+    if (typeof clearActiveRideState === "function") {
+        clearActiveRideState();
+    }
+
     ensureRecordMap();
 
     if (!navigator.geolocation) {
@@ -812,6 +834,7 @@ function startRideRecording() {
     rideStartTime = Date.now();
     startRideButton.disabled = true;
     stopRideButton.disabled = false;
+    saveRideButton.disabled = true;
     startRideButton.textContent = "Ride Recording";
     gpsStatus.textContent = "GPS: Ride recording started";
 
@@ -844,6 +867,7 @@ function stopRideRecording() {
     startRideButton.disabled = false;
     startRideButton.textContent = "Start New Ride";
     stopRideButton.disabled = true;
+    saveRideButton.disabled = ridePoints.length === 0;
     gpsStatus.textContent = "GPS: Ride stopped";
 
     // Keep the recorded track and totals visible for review.
@@ -940,3 +964,422 @@ if (startRideButton) {
 if (stopRideButton) {
     stopRideButton.addEventListener("click", stopRideRecording);
 }
+
+
+// ==========================================
+// Version 21 Dev 4 - Save, recall and export rides
+// ==========================================
+
+const SAVED_RIDES_KEY = "cyclePlannerSavedRides";
+
+function getSavedRides() {
+    try {
+        const stored = localStorage.getItem(SAVED_RIDES_KEY);
+        const rides = stored ? JSON.parse(stored) : [];
+        return Array.isArray(rides) ? rides : [];
+    } catch (error) {
+        console.error("Unable to read saved rides:", error);
+        return [];
+    }
+}
+
+function storeSavedRides(rides) {
+    localStorage.setItem(SAVED_RIDES_KEY, JSON.stringify(rides));
+}
+
+function makeRideId() {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function refreshSavedRideList(selectedId = "") {
+    if (!savedRideSelect) {
+        return;
+    }
+
+    const rides = getSavedRides()
+        .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+
+    savedRideSelect.innerHTML = '<option value="">Select a saved ride</option>';
+
+    rides.forEach((ride) => {
+        const option = document.createElement("option");
+        option.value = ride.id;
+        option.textContent = `${ride.name} - ${new Date(ride.savedAt).toLocaleString()}`;
+        savedRideSelect.appendChild(option);
+    });
+
+    if (selectedId) {
+        savedRideSelect.value = selectedId;
+    }
+}
+
+function calculateRideDurationSeconds() {
+    if (ridePoints.length < 2) {
+        return 0;
+    }
+
+    const start = Number(ridePoints[0].timestamp);
+    const end = Number(ridePoints[ridePoints.length - 1].timestamp);
+
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+        return 0;
+    }
+
+    return Math.floor((end - start) / 1000);
+}
+
+function saveCurrentRide() {
+    if (rideRecording) {
+        alert("Stop the ride before saving it.");
+        return;
+    }
+
+    if (!Array.isArray(ridePoints) || ridePoints.length === 0) {
+        alert("There is no recorded ride to save.");
+        return;
+    }
+
+    const defaultName = `Ride ${new Date().toLocaleDateString()}`;
+    const enteredName = window.prompt("Enter a name for this ride:", defaultName);
+
+    if (enteredName === null) {
+        return;
+    }
+
+    const rideName = enteredName.trim();
+    if (!rideName) {
+        alert("Please enter a ride name.");
+        return;
+    }
+
+    const ride = {
+        id: makeRideId(),
+        name: rideName,
+        savedAt: new Date().toISOString(),
+        distanceMetres: rideDistanceMetres,
+        durationSeconds: calculateRideDurationSeconds(),
+        points: ridePoints.map((point) => ({
+            latitude: point.latitude,
+            longitude: point.longitude,
+            timestamp: point.timestamp,
+            accuracy: point.accuracy ?? null
+        }))
+    };
+
+    const rides = getSavedRides();
+    rides.push(ride);
+    storeSavedRides(rides);
+    refreshSavedRideList(ride.id);
+
+    saveRideButton.disabled = true;
+    gpsStatus.textContent = `GPS: Ride saved as "${rideName}"`;
+}
+
+function getSelectedSavedRide() {
+    if (!savedRideSelect || !savedRideSelect.value) {
+        alert("Select a saved ride first.");
+        return null;
+    }
+
+    const rides = getSavedRides();
+    const ride = rides.find((item) => item.id === savedRideSelect.value);
+
+    if (!ride) {
+        alert("The selected ride could not be found.");
+        refreshSavedRideList();
+        return null;
+    }
+
+    return ride;
+}
+
+function loadSavedRide() {
+    const ride = getSelectedSavedRide();
+    if (!ride) {
+        return;
+    }
+
+    ensureRecordMap();
+
+    rideRecording = false;
+
+    if (rideTimerId !== null) {
+        window.clearInterval(rideTimerId);
+        rideTimerId = null;
+    }
+
+    if (rideTrackLine && recordMap) {
+        recordMap.removeLayer(rideTrackLine);
+    }
+
+    ridePoints = Array.isArray(ride.points) ? ride.points.map((point) => ({ ...point })) : [];
+    rideDistanceMetres = Number(ride.distanceMetres) || 0;
+    rideStartTime = null;
+    lastRidePosition = null;
+
+    const latLngs = ridePoints.map((point) => [point.latitude, point.longitude]);
+
+    if (latLngs.length > 0 && recordMap) {
+        rideTrackLine = L.polyline(latLngs, {
+            color: "#0b63ce",
+            weight: 5,
+            opacity: 0.9
+        }).addTo(recordMap);
+
+        recordMap.fitBounds(rideTrackLine.getBounds(), { padding: [20, 20] });
+    } else {
+        rideTrackLine = null;
+    }
+
+    rideDistance.textContent = `${(rideDistanceMetres / 1609.344).toFixed(2)} miles`;
+    rideTime.textContent = formatRideTime(Number(ride.durationSeconds) || 0);
+    rideSpeed.textContent = "0.0 mph";
+
+    startRideButton.disabled = false;
+    startRideButton.textContent = "Start New Ride";
+    stopRideButton.disabled = true;
+    saveRideButton.disabled = true;
+    gpsStatus.textContent = `GPS: Loaded saved ride "${ride.name}"`;
+}
+
+function escapeXml(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
+function makeSafeFilename(name) {
+    const safe = String(name)
+        .trim()
+        .replace(/[\\/:*?"<>|]+/g, "_")
+        .replace(/\s+/g, "_");
+
+    return safe || "saved_ride";
+}
+
+function exportSavedRideAsGpx() {
+    const ride = getSelectedSavedRide();
+    if (!ride) {
+        return;
+    }
+
+    if (!Array.isArray(ride.points) || ride.points.length === 0) {
+        alert("The selected ride has no recorded GPS points.");
+        return;
+    }
+
+    const trackPoints = ride.points.map((point) => {
+        const time = new Date(Number(point.timestamp)).toISOString();
+        return `      <trkpt lat="${Number(point.latitude).toFixed(7)}" lon="${Number(point.longitude).toFixed(7)}"><time>${time}</time></trkpt>`;
+    }).join("\n");
+
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Cycle Planner"
+     xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>${escapeXml(ride.name)}</name>
+    <time>${ride.savedAt}</time>
+  </metadata>
+  <trk>
+    <name>${escapeXml(ride.name)}</name>
+    <trkseg>
+${trackPoints}
+    </trkseg>
+  </trk>
+</gpx>`;
+
+    const blob = new Blob([gpx], { type: "application/gpx+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `${makeSafeFilename(ride.name)}.gpx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    gpsStatus.textContent = `GPS: Exported "${ride.name}"`;
+}
+
+if (saveRideButton) {
+    saveRideButton.addEventListener("click", saveCurrentRide);
+}
+
+if (loadRideButton) {
+    loadRideButton.addEventListener("click", loadSavedRide);
+}
+
+if (exportSavedRideButton) {
+    exportSavedRideButton.addEventListener("click", exportSavedRideAsGpx);
+}
+
+refreshSavedRideList();
+
+
+// ==========================================
+// Version 21 Dev 4 Final - Active ride recovery
+// ==========================================
+
+const ACTIVE_RIDE_KEY = "cyclePlannerActiveRide";
+
+function saveActiveRideState() {
+    if (!rideRecording || !Array.isArray(ridePoints) || ridePoints.length === 0) {
+        return;
+    }
+
+    const activeRide = {
+        savedAt: new Date().toISOString(),
+        rideStartTime: rideStartTime,
+        rideDistanceMetres: rideDistanceMetres,
+        lastRidePosition: lastRidePosition,
+        points: ridePoints.map((point) => ({
+            latitude: point.latitude,
+            longitude: point.longitude,
+            timestamp: point.timestamp,
+            accuracy: point.accuracy ?? null
+        }))
+    };
+
+    try {
+        localStorage.setItem(ACTIVE_RIDE_KEY, JSON.stringify(activeRide));
+    } catch (error) {
+        console.error("Unable to save active ride recovery data:", error);
+    }
+}
+
+function clearActiveRideState() {
+    try {
+        localStorage.removeItem(ACTIVE_RIDE_KEY);
+    } catch (error) {
+        console.error("Unable to clear active ride recovery data:", error);
+    }
+}
+
+function readActiveRideState() {
+    try {
+        const stored = localStorage.getItem(ACTIVE_RIDE_KEY);
+
+        if (!stored) {
+            return null;
+        }
+
+        const activeRide = JSON.parse(stored);
+
+        if (
+            !activeRide ||
+            !Array.isArray(activeRide.points) ||
+            activeRide.points.length === 0
+        ) {
+            return null;
+        }
+
+        return activeRide;
+    } catch (error) {
+        console.error("Unable to read active ride recovery data:", error);
+        return null;
+    }
+}
+
+function restoreActiveRide(activeRide) {
+    ensureRecordMap();
+
+    ridePoints = activeRide.points.map((point) => ({ ...point }));
+    rideDistanceMetres = Number(activeRide.rideDistanceMetres) || 0;
+    rideStartTime = Number(activeRide.rideStartTime) || Date.now();
+    lastRidePosition = activeRide.lastRidePosition || null;
+    rideRecording = true;
+
+    if (rideTrackLine && recordMap) {
+        recordMap.removeLayer(rideTrackLine);
+    }
+
+    const latLngs = ridePoints.map((point) => [
+        point.latitude,
+        point.longitude
+    ]);
+
+    rideTrackLine = L.polyline(latLngs, {
+        color: "#0b63ce",
+        weight: 5,
+        opacity: 0.9
+    }).addTo(recordMap);
+
+    if (latLngs.length > 0) {
+        recordMap.fitBounds(rideTrackLine.getBounds(), {
+            padding: [20, 20]
+        });
+    }
+
+    rideDistance.textContent =
+        `${(rideDistanceMetres / 1609.344).toFixed(2)} miles`;
+    updateRideTimer();
+    rideSpeed.textContent = "0.0 mph";
+
+    startRideButton.disabled = true;
+    startRideButton.textContent = "Ride Recording";
+    stopRideButton.disabled = false;
+    saveRideButton.disabled = true;
+    gpsStatus.textContent = "GPS: Unfinished ride restored";
+
+    if (rideTimerId !== null) {
+        window.clearInterval(rideTimerId);
+    }
+
+    rideTimerId = window.setInterval(updateRideTimer, 1000);
+
+    if (locationWatchId === null) {
+        startLiveLocation();
+    }
+}
+
+function offerActiveRideRecovery() {
+    const activeRide = readActiveRideState();
+
+    if (!activeRide) {
+        return;
+    }
+
+    const resumeRide = window.confirm(
+        "An unfinished ride was found. Would you like to resume it?"
+    );
+
+    if (resumeRide) {
+        restoreActiveRide(activeRide);
+    } else {
+        clearActiveRideState();
+    }
+}
+
+// Save after every accepted recording update.
+const originalAddRecordedRidePointForRecovery = addRecordedRidePoint;
+
+addRecordedRidePoint = function(position) {
+    originalAddRecordedRidePointForRecovery(position);
+
+    if (rideRecording) {
+        saveActiveRideState();
+    }
+};
+
+// Save before Android hides or closes the page.
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+        saveActiveRideState();
+    }
+});
+
+window.addEventListener("pagehide", saveActiveRideState);
+
+// A deliberate Stop Ride ends recovery for that active ride.
+const originalStopRideRecordingForRecovery = stopRideRecording;
+
+stopRideRecording = function() {
+    originalStopRideRecordingForRecovery();
+    clearActiveRideState();
+};
+
+window.setTimeout(offerActiveRideRecovery, 300);
