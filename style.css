@@ -248,3 +248,173 @@ button {
         white-space: normal;
     }
 }
+
+
+/* Version 21 Dev 1 - application modes */
+.mode-switch {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.mode-button {
+    min-width: 130px;
+    border: 2px solid white;
+    border-radius: 6px;
+    background: transparent;
+    color: white;
+    font-weight: bold;
+}
+
+.mode-button.active {
+    background: white;
+    color: #1b5e20;
+}
+
+.mode-panel[hidden] {
+    display: none;
+}
+
+#planPanel {
+    flex: 0 0 auto;
+}
+
+#recordPanel {
+    flex: 0 0 auto;
+    border-top: 1px solid #ccc;
+    background: white;
+}
+
+.record-placeholder {
+    padding: 16px;
+    text-align: center;
+}
+
+.record-placeholder h2 {
+    margin: 0 0 8px;
+}
+
+.record-placeholder p {
+    margin: 0;
+}
+
+@media (max-width: 600px) {
+    .mode-switch {
+        margin-top: 6px;
+    }
+
+    .mode-button {
+        min-width: 0;
+        flex: 1 1 0;
+        min-height: 40px;
+    }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    header {
+        display: block;
+        width: 180px;
+        flex: 0 0 180px;
+    }
+
+    header h1 {
+        font-size: 1.2rem;
+    }
+
+    .mode-switch {
+        flex-direction: column;
+    }
+
+    .mode-button {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+
+/* Version 21 Dev 2 Corrected - isolated Record Ride screen */
+#recordPanel {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-top: 0;
+    background: white;
+}
+
+#recordPanel[hidden] {
+    display: none;
+}
+
+.record-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+}
+
+#recordMap {
+    flex: 1 1 auto;
+    min-height: 220px;
+    width: 100%;
+}
+
+#gpsStatus {
+    font-weight: bold;
+    color: #006400;
+}
+
+@media (max-width: 600px) {
+    .record-toolbar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .record-toolbar button {
+        width: 100%;
+    }
+
+    #gpsStatus,
+    #gpsAccuracy {
+        grid-column: 1 / -1;
+    }
+}
+
+
+/* Version 21 Dev 3 - ride recording */
+.ride-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.ride-stats > div {
+    padding: 10px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.ride-stat-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.ride-stats strong {
+    font-size: 1.05rem;
+}
+
+@media (max-width: 768px) {
+    .ride-stats {
+        grid-template-columns: 1fr;
+    }
+}

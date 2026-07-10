@@ -1,5 +1,5 @@
 // ==========================================
-// Cycle Planner v0.12 - Version 20 Development 2
+// Cycle Planner v0.13 - Version 21 Development 1
 // ==========================================
 
 // ---------- Map ----------
@@ -35,6 +35,46 @@ const finishIcon = L.divIcon({
     className: "finish-marker",
     html: "🔴",
     iconSize: [25, 25]
+});
+
+
+// ---------- Application Modes ----------
+
+const planModeButton = document.getElementById("planModeButton");
+const recordModeButton = document.getElementById("recordModeButton");
+const planPanel = document.getElementById("planPanel");
+const recordPanel = document.getElementById("recordPanel");
+const plannerMapElement = document.getElementById("map");
+
+function setAppMode(mode) {
+    const planning = mode === "plan";
+
+    plannerMapElement.hidden = !planning;
+    planPanel.hidden = !planning;
+    recordPanel.hidden = planning;
+
+    planModeButton.classList.toggle("active", planning);
+    recordModeButton.classList.toggle("active", !planning);
+
+    planModeButton.setAttribute("aria-pressed", String(planning));
+    recordModeButton.setAttribute("aria-pressed", String(!planning));
+
+    window.setTimeout(function () {
+        if (planning) {
+            map.invalidateSize();
+        } else {
+            ensureRecordMap();
+            recordMap.invalidateSize();
+        }
+    }, 0);
+}
+
+planModeButton.addEventListener("click", function () {
+    setAppMode("plan");
+});
+
+recordModeButton.addEventListener("click", function () {
+    setAppMode("record");
 });
 
 // ---------- Status ----------
@@ -301,7 +341,8 @@ function exportGPX() {
 `;
 
     routePoints.forEach(function (point) {
-        gpx += `<trkpt lat="${point[0]}" lon="${point[1]}"></trkpt>\n`;
+        gpx += `<trkpt lat="${point[0]}" lon="${point[1]}"></trkpt>
+`;
     });
 
     gpx +=
@@ -549,4 +590,322 @@ async function getElevation() {
         console.error("Elevation calculation failed:", error);
         setStatus("Elevation unavailable");
     }
+}
+
+
+// ---------- Record Ride: Live GPS Location ----------
+
+let recordMap = null;
+let locationWatchId = null;
+let liveLocationMarker = null;
+let liveAccuracyCircle = null;
+let recordMapCentred = false;
+
+const showLocationButton = document.getElementById("showLocationButton");
+const stopLocationButton = document.getElementById("stopLocationButton");
+const gpsStatus = document.getElementById("gpsStatus");
+const gpsAccuracy = document.getElementById("gpsAccuracy");
+
+function ensureRecordMap() {
+    if (recordMap) {
+        return;
+    }
+
+    recordMap = L.map("recordMap").setView([54.5, -3], 6);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(recordMap);
+}
+
+function showLiveLocation(position) {
+    ensureRecordMap();
+
+    const point = [position.coords.latitude, position.coords.longitude];
+    const accuracy = Number(position.coords.accuracy) || 0;
+
+    if (!liveLocationMarker) {
+        liveLocationMarker = L.circleMarker(point, {
+            radius: 8,
+            color: "#0b63ce",
+            fillColor: "#2f80ed",
+            fillOpacity: 1,
+            weight: 3
+        }).addTo(recordMap).bindPopup("You are here");
+    } else {
+        liveLocationMarker.setLatLng(point);
+    }
+
+    if (!liveAccuracyCircle) {
+        liveAccuracyCircle = L.circle(point, {
+            radius: accuracy,
+            color: "#0b63ce",
+            fillColor: "#2f80ed",
+            fillOpacity: 0.12,
+            weight: 1
+        }).addTo(recordMap);
+    } else {
+        liveAccuracyCircle.setLatLng(point);
+        liveAccuracyCircle.setRadius(accuracy);
+    }
+
+    gpsStatus.textContent = "GPS: Location active";
+    gpsAccuracy.textContent = "Accuracy: approximately " + Math.round(accuracy) + " metres";
+
+    if (!recordMapCentred) {
+        recordMap.setView(point, 16);
+        recordMapCentred = true;
+    }
+}
+
+function handleLiveLocationError(error) {
+    let message = "Unable to get location";
+
+    if (error.code === 1) {
+        message = "Location permission denied";
+    } else if (error.code === 2) {
+        message = "Location unavailable";
+    } else if (error.code === 3) {
+        message = "Location request timed out";
+    }
+
+    gpsStatus.textContent = "GPS: " + message;
+    showLocationButton.disabled = false;
+    stopLocationButton.disabled = true;
+    locationWatchId = null;
+}
+
+function startLiveLocation() {
+    ensureRecordMap();
+
+    if (!navigator.geolocation) {
+        gpsStatus.textContent = "GPS: Not supported by this browser";
+        return;
+    }
+
+    if (locationWatchId !== null) {
+        return;
+    }
+
+    gpsStatus.textContent = "GPS: Requesting permission...";
+    gpsAccuracy.textContent = "Accuracy: --";
+    showLocationButton.disabled = true;
+    stopLocationButton.disabled = false;
+    recordMapCentred = false;
+
+    locationWatchId = navigator.geolocation.watchPosition(
+        showLiveLocation,
+        handleLiveLocationError,
+        {
+            enableHighAccuracy: true,
+            maximumAge: 2000,
+            timeout: 15000
+        }
+    );
+}
+
+function stopLiveLocation() {
+    if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+    }
+
+    gpsStatus.textContent = "GPS: Stopped";
+    showLocationButton.disabled = false;
+    stopLocationButton.disabled = true;
+}
+
+showLocationButton.addEventListener("click", startLiveLocation);
+stopLocationButton.addEventListener("click", stopLiveLocation);
+
+
+// ==========================================
+// Version 21 Dev 3 - Ride recording
+// ==========================================
+
+let rideRecording = false;
+let ridePoints = [];
+let rideTrackLine = null;
+let rideDistanceMetres = 0;
+let rideStartTime = null;
+let rideTimerId = null;
+let lastRidePosition = null;
+
+const startRideButton = document.getElementById("startRideButton");
+const rideDistance = document.getElementById("rideDistance");
+const rideTime = document.getElementById("rideTime");
+const rideSpeed = document.getElementById("rideSpeed");
+
+function metresBetween(lat1, lon1, lat2, lon2) {
+    const earthRadius = 6371000;
+    const toRadians = (degrees) => degrees * Math.PI / 180;
+    const deltaLat = toRadians(lat2 - lat1);
+    const deltaLon = toRadians(lon2 - lon1);
+
+    const a =
+        Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+        Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(deltaLon / 2) *
+        Math.sin(deltaLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadius * c;
+}
+
+function formatRideTime(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return [hours, minutes, seconds]
+        .map((value) => String(value).padStart(2, "0"))
+        .join(":");
+}
+
+function updateRideTimer() {
+    if (!rideRecording || !rideStartTime) {
+        return;
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - rideStartTime) / 1000);
+    rideTime.textContent = formatRideTime(elapsedSeconds);
+}
+
+function resetRideRecording() {
+    ridePoints = [];
+    rideDistanceMetres = 0;
+    lastRidePosition = null;
+    rideStartTime = null;
+
+    rideDistance.textContent = "0.00 miles";
+    rideTime.textContent = "00:00:00";
+    rideSpeed.textContent = "0.0 mph";
+
+    if (rideTrackLine && recordMap) {
+        recordMap.removeLayer(rideTrackLine);
+    }
+
+    rideTrackLine = null;
+}
+
+function startRideRecording() {
+    ensureRecordMap();
+
+    if (!navigator.geolocation) {
+        gpsStatus.textContent = "GPS: This browser does not support location services.";
+        return;
+    }
+
+    resetRideRecording();
+    rideRecording = true;
+    rideStartTime = Date.now();
+    startRideButton.disabled = true;
+    startRideButton.textContent = "Ride Recording";
+    gpsStatus.textContent = "GPS: Ride recording started";
+
+    if (locationWatchId === null) {
+        startLiveLocation();
+    }
+
+    if (rideTimerId !== null) {
+        window.clearInterval(rideTimerId);
+    }
+
+    rideTimerId = window.setInterval(updateRideTimer, 1000);
+}
+
+function addRecordedRidePoint(position) {
+    if (!rideRecording || !recordMap) {
+        return;
+    }
+
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    const timestamp = position.timestamp || Date.now();
+    const accuracy = Number(position.coords.accuracy);
+    const point = [latitude, longitude];
+
+    if (Number.isFinite(accuracy) && accuracy > 100) {
+        gpsStatus.textContent = "GPS: Waiting for a more accurate position";
+        return;
+    }
+
+    if (lastRidePosition) {
+        const segmentDistance = metresBetween(
+            lastRidePosition.latitude,
+            lastRidePosition.longitude,
+            latitude,
+            longitude
+        );
+
+        if (segmentDistance >= 3 && segmentDistance <= 250) {
+            rideDistanceMetres += segmentDistance;
+        }
+    }
+
+    ridePoints.push({
+        latitude,
+        longitude,
+        timestamp,
+        accuracy: Number.isFinite(accuracy) ? accuracy : null
+    });
+
+    if (!rideTrackLine) {
+        rideTrackLine = L.polyline([point], {
+            color: "#0b63ce",
+            weight: 5,
+            opacity: 0.9
+        }).addTo(recordMap);
+    } else {
+        rideTrackLine.addLatLng(point);
+    }
+
+    rideDistance.textContent = `${(rideDistanceMetres / 1609.344).toFixed(2)} miles`;
+
+    let speedMetresPerSecond = position.coords.speed;
+
+    if (
+        (!Number.isFinite(speedMetresPerSecond) || speedMetresPerSecond < 0) &&
+        lastRidePosition
+    ) {
+        const seconds = (timestamp - lastRidePosition.timestamp) / 1000;
+
+        if (seconds > 0) {
+            const segmentDistance = metresBetween(
+                lastRidePosition.latitude,
+                lastRidePosition.longitude,
+                latitude,
+                longitude
+            );
+
+            speedMetresPerSecond = segmentDistance / seconds;
+        }
+    }
+
+    if (Number.isFinite(speedMetresPerSecond) && speedMetresPerSecond >= 0) {
+        rideSpeed.textContent = `${(speedMetresPerSecond * 2.236936).toFixed(1)} mph`;
+    } else {
+        rideSpeed.textContent = "0.0 mph";
+    }
+
+    lastRidePosition = {
+        latitude,
+        longitude,
+        timestamp
+    };
+}
+
+if (typeof updateLiveLocation === "function") {
+    const originalUpdateLiveLocationForRide = updateLiveLocation;
+
+    updateLiveLocation = function(position) {
+        originalUpdateLiveLocationForRide(position);
+        addRecordedRidePoint(position);
+    };
+}
+
+if (startRideButton) {
+    startRideButton.addEventListener("click", startRideRecording);
 }

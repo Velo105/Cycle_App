@@ -26,11 +26,16 @@
 
 <header>
     <h1>Cycle Planner</h1>
+    <nav class="mode-switch" aria-label="Application mode">
+        <button type="button" id="planModeButton" class="mode-button active" aria-pressed="true">Plan Route</button>
+        <button type="button" id="recordModeButton" class="mode-button" aria-pressed="false">Record Ride</button>
+    </nav>
 </header>
 
 <main id="app">
     <div id="map"></div>
 
+    <section id="planPanel" class="mode-panel">
     <div id="info">
         <div class="button-group" aria-label="Route controls">
             <button type="button" onclick="undoLastPoint()">Undo Last Point</button>
@@ -64,6 +69,25 @@
 
         <span id="status" role="status" aria-live="polite">Status: Ready</span>
     </div>
+    </section>
+
+    <section id="recordPanel" class="mode-panel" hidden>
+        <div class="record-toolbar">
+            <button type="button" id="showLocationButton">Show My Location</button>
+            <button type="button" id="startRideButton">Start Ride</button>
+            <button type="button" id="stopLocationButton" disabled>Stop Location</button>
+            <span id="gpsStatus" role="status" aria-live="polite">GPS: Not started</span>
+            <span id="gpsAccuracy">Accuracy: --</span>
+        </div>
+
+        <div class="ride-stats" aria-live="polite">
+            <div><span class="ride-stat-label">Distance</span><strong id="rideDistance">0.00 miles</strong></div>
+            <div><span class="ride-stat-label">Ride time</span><strong id="rideTime">00:00:00</strong></div>
+            <div><span class="ride-stat-label">Current speed</span><strong id="rideSpeed">0.0 mph</strong></div>
+        </div>
+
+        <div id="recordMap" aria-label="Live GPS map"></div>
+    </section>
 </main>
 
 <!-- Leaflet map JavaScript -->
