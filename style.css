@@ -464,3 +464,107 @@ button {
         grid-column: 1 / -1;
     }
 }
+
+
+/* Version 21 Dev 5 - compact mobile controls */
+@media (max-width: 768px) {
+    /* Keep maps as the main part of the phone screen */
+    #map,
+    #recordMap {
+        height: 68vh;
+        min-height: 420px;
+    }
+
+    /* Compact all main control groups */
+    .controls,
+    .record-controls,
+    .saved-rides-panel,
+    .mode-switch {
+        gap: 6px;
+        margin: 6px 0;
+    }
+
+    /* Reduce button height and padding on phones */
+    button,
+    .mode-button,
+    .record-controls button,
+    .saved-rides-panel button {
+        min-height: 34px;
+        padding: 5px 8px;
+        font-size: 14px;
+        line-height: 1.1;
+    }
+
+    /* Keep planner buttons in compact rows instead of full-width blocks */
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .controls button {
+        width: 100%;
+    }
+
+    /* Keep record buttons compact in two columns */
+    .record-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .record-controls button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    /* Compact ride statistics into one row */
+    .ride-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        margin: 5px 0;
+    }
+
+    .ride-stats > div {
+        padding: 5px 4px;
+        text-align: center;
+    }
+
+    .ride-stat-label {
+        margin-bottom: 2px;
+        font-size: 0.72rem;
+    }
+
+    .ride-stats strong {
+        font-size: 0.88rem;
+    }
+
+    /* Compact saved ride controls */
+    .saved-rides-panel {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .saved-rides-panel label,
+    .saved-rides-panel select {
+        grid-column: 1 / -1;
+    }
+
+    .saved-rides-panel select {
+        min-height: 34px;
+        font-size: 14px;
+    }
+
+    /* Reduce headings and status spacing */
+    #recordPanel h2,
+    #planPanel h2 {
+        margin: 4px 0 6px;
+        font-size: 1.1rem;
+    }
+
+    .record-status {
+        margin: 4px 0;
+    }
+
+    .record-status p {
+        margin: 2px 0;
+        font-size: 0.8rem;
+    }
+}
