@@ -1430,3 +1430,30 @@ stopRideRecording = function() {
 };
 
 window.setTimeout(offerActiveRideRecovery, 300);
+
+
+// ==========================================
+// Version 21 Dev 5 - Block caret browsing prompt
+// ==========================================
+
+function blockCaretBrowsingShortcut(event) {
+    const keyCode = event.keyCode || event.which;
+
+    if (
+        event.key === "F7" ||
+        event.code === "F7" ||
+        keyCode === 118
+    ) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (typeof event.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+        }
+
+        return false;
+    }
+}
+
+window.addEventListener("keydown", blockCaretBrowsingShortcut, true);
+window.addEventListener("keyup", blockCaretBrowsingShortcut, true);
