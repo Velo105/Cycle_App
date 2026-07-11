@@ -6,11 +6,33 @@
 
 const map = L.map("map").setView([54.5, -3], 6);
 
-L.tileLayer(
+const standardMapLayer = L.tileLayer(
     "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     {
         maxZoom: 19,
         attribution: "© OpenStreetMap contributors"
+    }
+);
+
+const cycleMapLayer = L.tileLayer(
+    "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
+    {
+        maxZoom: 20,
+        attribution: "CyclOSM | © OpenStreetMap contributors"
+    }
+);
+
+standardMapLayer.addTo(map);
+
+L.control.layers(
+    {
+        "Standard Map": standardMapLayer,
+        "Cycle Map": cycleMapLayer
+    },
+    null,
+    {
+        position: "topright",
+        collapsed: true
     }
 ).addTo(map);
 
@@ -164,7 +186,7 @@ async function updateRoute() {
 
         routeLine = L.polyline(routePoints, {
             color: "red",
-            weight: 5
+            weight: 2.5
         }).addTo(map);
 
         updateTime();
@@ -410,7 +432,7 @@ document.getElementById("gpxFile").addEventListener("change", function (event) {
 
             routeLine = L.polyline(importedRoute, {
                 color: "red",
-                weight: 5
+                weight: 2.5
             }).addTo(map);
 
             points = importedRoute.map(function (point) {
@@ -613,10 +635,35 @@ function ensureRecordMap() {
 
     recordMap = L.map("recordMap").setView([54.5, -3], 6);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(recordMap);
+    const recordStandardMapLayer = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap contributors"
+        }
+    );
+
+    const recordCycleMapLayer = L.tileLayer(
+        "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
+        {
+            maxZoom: 20,
+            attribution: "CyclOSM | &copy; OpenStreetMap contributors"
+        }
+    );
+
+    recordStandardMapLayer.addTo(recordMap);
+
+    L.control.layers(
+        {
+            "Standard Map": recordStandardMapLayer,
+            "Cycle Map": recordCycleMapLayer
+        },
+        null,
+        {
+            position: "topright",
+            collapsed: true
+        }
+    ).addTo(recordMap);
 }
 
 function showLiveLocation(position) {
