@@ -804,6 +804,7 @@ let lastRidePosition = null;
 const startRideButton = document.getElementById("startRideButton");
 const stopRideButton = document.getElementById("stopRideButton");
 const saveRideButton = document.getElementById("saveRideButton");
+const clearRideButton = document.getElementById("clearRideButton");
 const savedRideSelect = document.getElementById("savedRideSelect");
 const loadRideButton = document.getElementById("loadRideButton");
 const exportSavedRideButton = document.getElementById("exportSavedRideButton");
@@ -877,11 +878,20 @@ function startRideRecording() {
     }
 
     resetRideRecording();
+
+    if (savedRideSelect) {
+        savedRideSelect.value = "";
+    }
+
     rideRecording = true;
     rideStartTime = Date.now();
     startRideButton.disabled = true;
     stopRideButton.disabled = false;
     saveRideButton.disabled = true;
+
+    if (clearRideButton) {
+        clearRideButton.disabled = true;
+    }
     startRideButton.textContent = "Ride Recording";
     gpsStatus.textContent = "GPS: Ride recording started";
 
@@ -915,7 +925,17 @@ function stopRideRecording() {
     startRideButton.textContent = "Start New Ride";
     stopRideButton.disabled = true;
     saveRideButton.disabled = ridePoints.length === 0;
+
+    if (clearRideButton) {
+        clearRideButton.disabled = false;
+    }
+
     gpsStatus.textContent = "GPS: Ride stopped";
+
+    // A deliberate Stop Ride must remove unfinished-ride recovery data.
+    if (typeof clearActiveRideState === "function") {
+        clearActiveRideState();
+    }
 
     // Keep the recorded track and totals visible for review.
     lastRidePosition = null;
@@ -1003,6 +1023,35 @@ function addRecordedRidePoint(position) {
 }
 
 
+function clearDisplayedRide() {
+    if (rideRecording) {
+        alert("Stop the ride before clearing it.");
+        return;
+    }
+
+    resetRideRecording();
+
+    if (typeof clearActiveRideState === "function") {
+        clearActiveRideState();
+    }
+
+    if (savedRideSelect) {
+        savedRideSelect.value = "";
+    }
+
+    startRideButton.disabled = false;
+    startRideButton.textContent = "Start Ride";
+    stopRideButton.disabled = true;
+    saveRideButton.disabled = true;
+
+    if (clearRideButton) {
+        clearRideButton.disabled = false;
+    }
+
+    gpsStatus.textContent = "GPS: Previous ride cleared - ready";
+}
+
+
 if (startRideButton) {
     startRideButton.addEventListener("click", startRideRecording);
 }
@@ -1010,6 +1059,10 @@ if (startRideButton) {
 
 if (stopRideButton) {
     stopRideButton.addEventListener("click", stopRideRecording);
+}
+
+if (clearRideButton) {
+    clearRideButton.addEventListener("click", clearDisplayedRide);
 }
 
 
@@ -1186,6 +1239,11 @@ function loadSavedRide() {
     startRideButton.textContent = "Start New Ride";
     stopRideButton.disabled = true;
     saveRideButton.disabled = true;
+
+    if (clearRideButton) {
+        clearRideButton.disabled = false;
+    }
+
     gpsStatus.textContent = `GPS: Loaded saved ride "${ride.name}"`;
 }
 
@@ -1370,6 +1428,11 @@ function restoreActiveRide(activeRide) {
     startRideButton.textContent = "Ride Recording";
     stopRideButton.disabled = false;
     saveRideButton.disabled = true;
+
+    if (clearRideButton) {
+        clearRideButton.disabled = true;
+    }
+
     gpsStatus.textContent = "GPS: Unfinished ride restored";
 
     if (rideTimerId !== null) {
