@@ -568,3 +568,140 @@ button {
         font-size: 0.8rem;
     }
 }
+
+
+/* Version 21 Dev 5 - corrected mobile map/data balance */
+@media (max-width: 768px) {
+    /*
+       Do not force a viewport height on the maps.
+       The flex layout now gives the map all remaining space
+       after the compact controls and route information.
+    */
+    #map,
+    #recordMap {
+        height: auto;
+        min-height: 0;
+    }
+
+    #map {
+        flex: 1 1 auto;
+    }
+
+    #planPanel {
+        flex: 0 0 auto;
+        max-height: 38vh;
+        overflow-y: auto;
+    }
+
+    #info {
+        max-height: none;
+        overflow: visible;
+        gap: 5px;
+        padding: 6px;
+        font-size: 13px;
+    }
+
+    /* These are the actual Plan Route button controls */
+    .button-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 5px;
+    }
+
+    .button-group button {
+        width: 100%;
+        min-height: 32px;
+        padding: 4px 5px;
+        font-size: 12px;
+        line-height: 1.1;
+    }
+
+    .ride-details {
+        display: grid;
+        grid-template-columns: auto 1fr 1fr;
+        align-items: center;
+        gap: 5px 8px;
+        font-size: 12px;
+    }
+
+    .speed-control {
+        grid-column: auto;
+        gap: 3px;
+    }
+
+    #speed {
+        width: 50px;
+        min-height: 30px;
+        padding: 3px 4px;
+        font-size: 12px;
+    }
+
+    #elevation,
+    #status {
+        font-size: 12px;
+        line-height: 1.2;
+    }
+
+    /* These are the actual Record Ride controls */
+    .record-toolbar {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+        padding: 6px;
+    }
+
+    .record-toolbar button {
+        width: 100%;
+        min-height: 32px;
+        padding: 4px 5px;
+        font-size: 12px;
+        line-height: 1.1;
+    }
+
+    #gpsStatus,
+    #gpsAccuracy {
+        grid-column: 1 / -1;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+
+    .ride-stats {
+        margin: 4px 0;
+    }
+
+    .saved-rides-panel {
+        margin: 4px 0;
+        gap: 5px;
+        padding: 0 6px 6px;
+    }
+
+    .saved-rides-panel select,
+    .saved-rides-panel button {
+        min-height: 32px;
+        padding: 4px 5px;
+        font-size: 12px;
+    }
+
+    #recordPanel {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    #recordMap {
+        flex: 1 1 auto;
+    }
+}
+
+@media (max-width: 420px) {
+    .ride-details {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .speed-control {
+        grid-column: 1 / -1;
+    }
+
+    .record-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
